@@ -36,7 +36,7 @@ class RunDb:
     remaining = num_games
     while remaining > 0:
       task_size = min(self.chunk_size, remaining)
-      if sprt==None and task_size == self.chunk_size and remaining < 10000:
+      if sprt==None and task_size == self.chunk_size and remaining <= 10000:
         task_size = task_size / 2
       tasks.append({
         'num_games': task_size,
