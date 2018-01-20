@@ -231,6 +231,8 @@ class RunDb:
       'new': True,
       'query': { '$and': [ {'tasks': {'$elemMatch': {'active': False, 'pending': True}}},
                            {'args.threads': { '$lte': max_threads }},
+                           {'$or': [ {max_threads: { '$gte': 3 }},
+                                     {'args.tc': "10+0.1" }]}
                            {'_id': { '$nin': exclusion_list}},
                            {'approved': True}]},
       'sort': [('args.priority', DESCENDING), ('args.internal_priority', DESCENDING), ('_id', ASCENDING)],
