@@ -31,13 +31,15 @@ class RunDb:
   def build_indices(self):
     self.runs.ensure_index([('finished', ASCENDING), ('last_updated', DESCENDING)])
 
-  def generate_tasks(self, num_games, sprt):
+  def generate_tasks(self, num_games, sprt, tc):
     tasks = []
     remaining = num_games
     while remaining > 0:
       task_size = min(self.chunk_size, remaining)
       if sprt==None and task_size == self.chunk_size and remaining <= 10000:
         task_size = task_size / 2
+        if tc == "180+1.8":
+          task_size = task_size / 2
       tasks.append({
         'num_games': task_size,
         'pending': True,
@@ -101,7 +103,7 @@ class RunDb:
       'start_time': start_time,
       'last_updated': start_time,
       # Will be filled in by tasks, indexed by task-id
-      'tasks': self.generate_tasks(num_games, sprt),
+      'tasks': self.generate_tasks(num_games, sprt, run_args['tc']),
       # Aggregated results
       'results': { 'wins': 0, 'losses': 0, 'draws': 0 },
       'results_stale': False,
