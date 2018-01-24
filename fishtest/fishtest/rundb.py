@@ -227,27 +227,32 @@ class RunDb:
       return {'task_waiting': False, 'hit_machine_limit': True}
 
     # Ok, we get a new task that does not require more threads than available concurrency
-    qtc = {'approved': True}    # redundant test
+    qtc = {'approved': True}        # redundant test
     if max_threads < 3:
       qtc = {'args.tc': "10+0.1"}
-    q = {
-      'new': True,
-      'query': { '$and': [ {'tasks': {'$elemMatch': {'active': False, 'pending': True}}},
-                           {'args.threads': { '$lte': max_threads }},
-                           qtc,
-                           {'_id': { '$nin': exclusion_list}},
-                           {'approved': True}]},
-      'sort': [('args.priority', DESCENDING), ('args.internal_priority', DESCENDING), ('_id', ASCENDING)],
-      'update': {
-        '$set': {
-          'tasks.$.active': True,
-          'tasks.$.last_updated': datetime.utcnow(),
-          'tasks.$.worker_info': worker_info,
+    for i in [1,2]:
+      q = {
+        'new': True,
+        'query': { '$and': [ {'tasks': {'$elemMatch': {'active': False, 'pending': True}}},
+                             {'args.threads': { '$lte': max_threads }},
+                             qtc,
+                             {'_id': { '$nin': exclusion_list}},
+                             {'approved': True}]},
+        'sort': [('args.priority', DESCENDING), ('args.internal_priority', DESCENDING), ('_id', ASCENDING)],
+        'update': {
+          '$set': {
+            'tasks.$.active': True,
+            'tasks.$.last_updated': datetime.utcnow(),
+            'tasks.$.worker_info': worker_info,
+          }
         }
       }
-    }
 
-    run = self.runs.find_and_modify(**q)
+      run = self.runs.find_and_modify(**q)
+      if run != None or max_threads >= 3:
+        break
+      qtc = {'approved': True}        # allow any tc and try again
+
     if run == None:
       return {'task_waiting': False}
 
