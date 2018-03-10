@@ -27,9 +27,24 @@ class RunDb:
     self.old_runs = self.db['old_runs']
 
     self.chunk_size = 1000
+    #self.build_indices()
 
   def build_indices(self):
+    t0 = datetime.utcnow()
+    f = open("/home/fishtest/fishtest/fishtest/fishtest/bidx.log", "a")
+    f.write("build_indices: start\n")
+    f.close()
+
     self.runs.ensure_index([('finished', ASCENDING), ('last_updated', DESCENDING)])
+    self.runs.ensure_index([('tasks.pending', ASCENDING)],
+                           partialFilterExpression = { 'tasks': { '$elemMatch': {'pending': True} } } )
+    self.runs.ensure_index([('tasks.active', ASCENDING)],
+                           partialFilterExpression = { 'tasks': { '$elemMatch': {'active': True} } } )
+
+    run_t = datetime.utcnow() - t0
+    f = open("/home/fishtest/fishtest/fishtest/fishtest/bidx.log", "a")
+    f.write("build_indices: end "+str(run_t)+".\n")
+    f.close()
 
   def generate_tasks(self, num_games):
     tasks = []
@@ -200,6 +215,7 @@ class RunDb:
 
   def request_task(self, worker_info):
     # Check for blocked user or ip
+    t0 = datetime.utcnow()
     if self.userdb.is_blocked(worker_info):
       return {'task_waiting': False}
 
@@ -247,6 +263,10 @@ class RunDb:
 
     run = self.runs.find_and_modify(**q)
     if run == None:
+      run_t = datetime.utcnow() - t0
+      f = open("/home/fishtest/fishtest/fishtest/fishtest/qt.log", "a")
+      f.write("new tasks q: "+str(run_t)+"\n")
+      f.close()
       return {'task_waiting': False}
 
     # Find the task we have just activated: the one with the highest 'last_updated'
@@ -263,6 +283,10 @@ class RunDb:
       run['args']['internal_priority'] = - time.mktime(run['start_time'].timetuple()) - task_id * 3600 * self.chunk_size * run['args']['threads'] / run['args']['throughput']
     self.runs.save(run)
 
+    run_t = datetime.utcnow() - t0
+    f = open("/home/fishtest/fishtest/fishtest/fishtest/qt.log", "a")
+    f.write("new tasks q: "+str(run_t)+"\n")
+    f.close()
     return {'run': run, 'task_id': task_id}
 
   def update_task(self, run_id, task_id, stats, nps, spsa):
