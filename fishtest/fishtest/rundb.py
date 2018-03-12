@@ -194,7 +194,6 @@ class RunDb:
 
     run['results_stale'] = False
     run['results'] = results
-    self.runs.save(run)
 
     return results
 
@@ -299,8 +298,6 @@ class RunDb:
     if 'spsa' in run['args'] and spsa_games == spsa['num_games']:
       self.update_spsa(run, spsa)
 
-    self.runs.save(run)
-
     # Check if SPRT stopping is enabled
     if 'sprt' in run['args']:
       sprt = run['args']['sprt']
@@ -312,9 +309,9 @@ class RunDb:
                                   drawelo=sprt['drawelo'])
       if sprt_stats['finished']:
         run['args']['sprt']['state'] = sprt_stats['state']
-        self.runs.save(run)
+        self.stop_run(run_id, run)
 
-        self.stop_run(run_id)
+    self.runs.save(run)
 
     return {'task_alive': task['active']}
 
@@ -333,8 +330,11 @@ class RunDb:
 
     return {}
 
-  def stop_run(self, run_id):
-    run = self.get_run(run_id)
+  def stop_run(self, run_id, run = None):
+    save_it = False
+    if run is None:
+      run = self.get_run(run_id)
+      save_it = True
     prune_idx = len(run['tasks'])
     for idx, task in enumerate(run['tasks']):
       is_active = task['active']
@@ -347,7 +347,8 @@ class RunDb:
     # Truncate the empty tasks
     if prune_idx < len(run['tasks']):
       del run['tasks'][prune_idx:]
-    self.runs.save(run)
+    if save_it:
+      self.runs.save(run)
 
     return {}
 
