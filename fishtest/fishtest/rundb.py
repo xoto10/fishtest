@@ -4,6 +4,7 @@ import random
 import math
 import time
 from datetime import datetime
+from threading import Lock
 from bson.objectid import ObjectId
 from pymongo import MongoClient, ASCENDING, DESCENDING
 
@@ -25,6 +26,7 @@ class RunDb:
     self.regressiondb = RegressionDb(self.db)
     self.runs = self.db['runs']
     self.old_runs = self.db['old_runs']
+    self.update_lock = Lock()
 
     self.chunk_size = 1000
 
@@ -265,6 +267,11 @@ class RunDb:
     return {'run': run, 'task_id': task_id}
 
   def update_task(self, run_id, task_id, stats, nps, spsa):
+    if not self.update_lock.acquire(False):
+      sleep(1)
+      if not self.update_lock.acquire(False):
+        return {}
+
     run = self.get_run(run_id)
     if task_id >= len(run['tasks']):
       return {'task_alive': False}
@@ -312,6 +319,7 @@ class RunDb:
         self.stop_run(run_id, run)
 
     self.runs.save(run)
+    self.update_lock.release()
 
     return {'task_alive': task['active']}
 
