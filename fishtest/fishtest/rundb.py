@@ -228,7 +228,8 @@ class RunDb:
           else:
             # Don't hand back tasks that have been marked as no longer pending
             task['active'] = False
-            self.runs.save(existing_run)
+            self.runs.update({'_id':existing_run['_id']},
+                             {'tasks.'+str(task_id)+'.active': False})
 
     # We need to allocate a new task, but first check we don't have the same
     # machine already running because multiple connections are not allowed.
@@ -275,7 +276,8 @@ class RunDb:
     # With default value 'throughput = 1000', this means that the priority is unchanged as long as we play at rate '1000 games / hour'.
     if (run['args']['throughput'] != None and run['args']['throughput'] != 0):
       run['args']['internal_priority'] = - time.mktime(run['start_time'].timetuple()) - task_id * 3600 * self.chunk_size * run['args']['threads'] / run['args']['throughput']
-    self.runs.save(run)
+    self.runs.update({'_id':run['_id']},
+                     {'args.internal_priority' : run['args']['internal_priority']})
 
     self.task_sema.release()
     return {'run': run, 'task_id': task_id}
