@@ -157,6 +157,8 @@ class RunDb:
                 if task["active"]:
                     machine = copy.copy(task["worker_info"])
                     machine["last_updated"] = task.get("last_updated", None)
+                    machine["active_cores"] = 0 if (datetime.utcnow() - machine["last_updated"] > timedelta(minutes=10))
+                                                else int(machine["concurrency"])
                     machine["run"] = run
                     machine["nps"] = task.get("nps", 0)
                     machines.append(machine)
@@ -370,7 +372,7 @@ class RunDb:
         cores = 0
         nps = 0
         for m in self.get_machines():
-            concurrency = int(m["concurrency"])
+            concurrency = m["active_cores"]
             cores += concurrency
             nps += concurrency * m["nps"]
         pending_hours = 0
